@@ -10,10 +10,24 @@ RUN chmod 700 get_helm.sh
 
 RUN ./get_helm.sh
 
-RUN helm repo add mirantis https://charts.mirantis.com
+SECRET ENV CODING_USER
+RUN echo "secret is: $CODING_USER"
+
+SECRET ENV CODING_PASS
+RUN echo "secret is: $CODING_PASS"
 
 
-RUN helm install my-release mirantis/nginx --kubeconfig /etc/rancher/k3s/k3s.yaml --wait && k3s kubectl get pods
+RUN helm repo add --username ${CODING_USER} --password ${CODING_PASS} wepack "https://coding-public-helm.pkg.coding.net/wepack/wepack"
+
+RUN helm install  my-wepack wepack/wepack-ent \ 
+--kubeconfig /etc/rancher/k3s/k3s.yaml \ 
+--version 0.0.0-79289d0333437da80ee5a7a0ab484df135e4343b \ 
+--set integration.defaultStorageClassName=local-path,\
+options.rootDomain=wepack.layerci.coding-testing.com,\
+options.imageCredentials.enabled=true,options.imageCredentials.username=$CODING_USER,\
+options.imageCredentials.password=$CODING_PASS --wait
+
+RUN k3s kubectl get pods
 
 ENV KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
@@ -21,6 +35,6 @@ RUN env
 
 RUN k3s kubectl get pods
 
-RUN BACKGROUND kubectl --namespace default port-forward pod/my-release-nginx-694fdf6c8b-fj2kg --address=0.0.0.0 8080:80
+# RUN BACKGROUND kubectl --namespace default port-forward pod/my-release-nginx-694fdf6c8b-fj2kg --address=0.0.0.0 8080:80
 
-EXPOSE WEBSITE http://localhost:8080
+EXPOSE WEBSITE http://localhost:80
