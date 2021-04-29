@@ -1,0 +1,26 @@
+#Use an Ubuntu 18.04 base for our staging server
+FROM vm/ubuntu:18.04
+
+RUN curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
+
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+
+RUN chmod 700 get_helm.sh
+
+
+RUN ./get_helm.sh
+
+RUN helm repo add mirantis https://charts.mirantis.com
+
+
+RUN helm install my-release mirantis/nginx --kubeconfig /etc/rancher/k3s/k3s.yaml --wait && k3s kubectl get pods
+
+ENV KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+RUN env
+
+RUN k3s kubectl get pods
+
+RUN BACKGROUND kubectl --namespace default port-forward pod/my-release-nginx-694fdf6c8b-fj2kg --address=0.0.0.0 8080:80
+
+EXPOSE WEBSITE http://localhost:8080
